@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>แปลงเป็น Google Docs พร้อม Upload</title>
+<title>แปลงเป็น Google Docs พร้อม Upload V2</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -21,7 +21,7 @@ h1{font-size:20px;font-weight:500;margin-bottom:1.5rem;color:#1a1a18;display:fle
 .file-row{display:flex;align-items:center;justify-content:space-between}
 .file-info{flex:1;display:flex;flex-direction:column;padding-right:10px}
 .file-name{font-weight:500;word-break:break-all}
-.file-meta{font-size:12px;color:#666;margin-top:2px}
+.file-meta{font-size:12px;color:#666;margin-top:2px;display:flex;align-items:center;gap:4px}
 .status-badge{font-size:11px;padding:3px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
 .status-wait{background:#e0e0e0;color:#333}
 .status-uploading{background:#ffe0b2;color:#e65100}
@@ -44,11 +44,16 @@ h1{font-size:20px;font-weight:500;margin-bottom:1.5rem;color:#1a1a18;display:fle
 .btn-toggle-log:hover{text-decoration:underline}
 .log-container{display:none;margin-top:8px}
 #debug-log{background:#222;color:#0f0;font-family:monospace;padding:12px;border-radius:8px;max-height:180px;overflow-y:auto;font-size:12px;white-space:pre-wrap}
+
+/* สไตล์เพิ่มเติมสำหรับแสดงข้อมูลโฟลเดอร์หลังอัปโหลดสำเร็จ */
+.folder-info-box{font-size:12.5px;color:#5f6368;margin-top:6px;display:flex;align-items:center;gap:4px}
+.folder-link{color:#1a73e8;text-decoration:none;font-weight:500;display:inline-flex;align-items:center;gap:2px}
+.folder-link:hover{text-decoration:underline}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1><i class="ti ti-file-text"></i> ระบบแปลงไฟล์และอัปโหลด</h1>
+  <h1><i class="ti ti-file-text"></i> ระบบแปลงไฟล์และอัปโหลด โดย ศจฟ.(น1)</h1>
 
   <input type="hidden" id="parent-folder-id" value="1G3pzzHwTg2cbtSXhfaQI13Em89NAEySx" />
 
@@ -64,7 +69,7 @@ h1{font-size:20px;font-weight:500;margin-bottom:1.5rem;color:#1a1a18;display:fle
     <div class="file-list" id="file-list"></div>
     
     <button class="btn-primary" id="btn-upload" disabled>
-      <i class="ti ti-file-import"></i> แปลงเป็น Google Docs พร้อม Upload
+      <i class="ti ti-file-import"></i> แปลงเป็น Google Docs พร้อมรับลิงค์
     </button>
   </div>
 
@@ -139,6 +144,8 @@ function handleFiles(files) {
       isConvertible: isConvertible,
       status: 'wait',
       gdocUrl: '',
+      serverFolderName: '', // รองรับกรณีหลังบ้านส่งชื่อโฟลเดอร์จริงกลับมา
+      serverFolderUrl: '',  // รองรับกรณีหลังบ้านส่งลิงก์โฟลเดอร์จริงกลับมา
       id: 'f_' + Date.now() + '_' + i
     });
   }
@@ -166,29 +173,43 @@ function render() {
     if(f.status === 'error') { statusTxt = 'ล้มเหลว'; badgeClass = 'status-error'; }
 
     const actionText = f.isConvertible ? 'แปลงเป็น Google Docs' : 'อัปโหลดปกติ';
+    const expectedFolder = `พ.ศ. ${f.yearTh} > ${MONTHS[f.month]}`;
 
     let htmlContent = `
       <div class="file-row">
         <div class="file-info">
           <span class="file-name">${f.file.name}</span>
-          <span class="file-meta">เป้าหมายโฟลเดอร์ย่อย: เดือนที่ ${f.month + 1} (${actionText})</span>
+          <span class="file-meta"><i class="ti ti-folder"></i> เป้าหมายโฟลเดอร์: ${expectedFolder} (${actionText})</span>
         </div>
         <span class="status-badge ${badgeClass}">${statusTxt}</span>
       </div>
     `;
 
-    // แสดงลิงก์เอกสารเมื่ออัปโหลดสำเร็จ พร้อมเพิ่มปุ่มคัดลอกลิงก์
-    if(f.status === 'success' && f.gdocUrl) {
+    // แสดงรายละเอียดและลิงก์เมื่อดำเนินการสำเร็จ
+    if(f.status === 'success') {
+      const finalFolderName = f.serverFolderName || expectedFolder;
+      
+      // แสดงชื่อโฟลเดอร์ที่จัดเก็บจริง
       htmlContent += `
-        <div class="link-box">
-          <a href="${f.gdocUrl}" target="_blank" class="gdoc-link">
-            <i class="ti ti-external-link"></i> เปิดเอกสาร Google Docs
-          </a>
-          <button class="btn-copy" onclick="copyToClipboard('${f.gdocUrl}', this)" title="คัดลอกลิงก์">
-            <i class="ti ti-copy"></i> คัดลอกลิงก์
-          </button>
+        <div class="folder-info-box">
+          <i class="ti ti-folder-check" style="color:#2e7d32;"></i> จัดเก็บในโฟลเดอร์: 
+          <span style="font-weight:600; color:#1a1a18;">${finalFolderName}</span>
+          ${f.serverFolderUrl ? `<a href="${f.serverFolderUrl}" target="_blank" class="folder-link"><i class="ti ti-external-link"></i> เปิดโฟลเดอร์</a>` : ''}
         </div>
       `;
+
+      if(f.gdocUrl) {
+        htmlContent += `
+          <div class="link-box">
+            <a href="${f.gdocUrl}" target="_blank" class="gdoc-link">
+              <i class="ti ti-external-link"></i> เปิดเอกสาร Google Docs
+            </a>
+            <button class="btn-copy" onclick="copyToClipboard('${f.gdocUrl}', this)" title="คัดลอกลิงก์">
+              <i class="ti ti-copy"></i> คัดลอกลิงก์
+            </button>
+          </div>
+        `;
+      }
     }
 
     item.innerHTML = htmlContent;
@@ -252,6 +273,11 @@ btnUpload.addEventListener('click', async () => {
       if(resData.status === 'success') {
         f.status = 'success';
         f.gdocUrl = resData.url; 
+        
+        // ดึงข้อมูลโฟลเดอร์หากฝั่ง Apps Script (Web App) ส่งกลับมา (เช่น resData.folderName หรือ resData.folderUrl)
+        if(resData.folderName) f.serverFolderName = resData.folderName;
+        if(resData.folderUrl) f.serverFolderUrl = resData.folderUrl;
+        
         dbg(`สำเร็จ! สิ้นสุดการประมวลผล: ${f.file.name}`);
       } else {
         f.status = 'error';
