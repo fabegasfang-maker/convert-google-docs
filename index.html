@@ -169,12 +169,20 @@ dropzone.addEventListener('drop', (e) => {
 fileInput.addEventListener('change', () => handleFiles(fileInput.files));
 
 function handleFiles(files) {
+  // 1. เคลียร์รายการที่ "สำเร็จแล้ว" หรือ "ล้มเหลว" ออกไปเมื่อมีการดึงไฟล์ใหม่เข้ามา
+  // (ลิงก์เก่าจะยังโชว์อยู่จนกว่าคุณจะลากไฟล์ใหม่เข้ามา)
+  filesArray = filesArray.filter(f => f.status === 'wait');
+
+  // 2. ล้างช่องเลข SWG ให้ว่าง เพื่อรอพิมพ์เลขใหม่ (ถ้าอยากให้จำเลขเดิมไว้ ให้ลบบรรทัดนี้ทิ้งได้ครับ)
+  swgInput.value = '';
+
   for(let i=0; i<files.length; i++) {
     const f = files[i];
     const lm = f.lastModifiedDate ? new Date(f.lastModifiedDate) : new Date();
     const yearTh = lm.getFullYear() + 543;
     const ext = f.name.split('.').pop().toLowerCase();
     const isConvertible = ['docx', 'doc', 'txt', 'html', 'rtf'].includes(ext);
+    
     filesArray.push({
       file: f,
       month: lm.getMonth(),
@@ -189,6 +197,9 @@ function handleFiles(files) {
     });
   }
   render();
+  
+  // 3. รีเซ็ตปุ่มเลือกไฟล์ให้ว่าง (สำคัญมาก: ช่วยให้กดเลือกไฟล์ชื่อเดิมซ้ำได้โดยไม่ติดบั๊ก)
+  fileInput.value = ''; 
 }
 
 function render() {
