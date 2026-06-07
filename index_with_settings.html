@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>แปลงเป็น Google Docs พร้อม Upload V4</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f2;min-height:100vh;padding:2rem 1rem;color:#1a1a18}
+.wrap{max-width:660px;margin:0 auto}
+h1{font-size:20px;font-weight:500;margin-bottom:1.5rem;color:#1a1a18;display:flex;align-items:center;gap:8px}
+.card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1.5rem;margin-bottom:1rem}
+.section-label{font-size:12px;font-weight:500;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.dropzone{border:2px dashed rgba(0,0,0,0.15);border-radius:12px;padding:2.5rem 2rem;text-align:center;background:#fafafa;cursor:pointer;transition:all .2s}
+.dropzone:hover{background:#f0f0f0;border-color:#1a1a18}
+.dropzone i{font-size:36px;color:#1a1a18;margin-bottom:8px;display:block}
+#file-input{display:none}
+.file-list{margin-top:1rem}
+.file-item{display:flex;flex-direction:column;padding:12px;border-bottom:1px solid rgba(0,0,0,0.06);font-size:14px;background:#fff;margin-bottom:6px;border-radius:6px}
+.file-row{display:flex;align-items:center;justify-content:space-between}
+.file-info{flex:1;display:flex;flex-direction:column;padding-right:10px}
+.file-name{font-weight:500;word-break:break-all}
+.file-meta{font-size:12px;color:#666;margin-top:2px;display:flex;align-items:center;gap:4px}
+.status-badge{font-size:11px;padding:3px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.status-wait{background:#e0e0e0;color:#333}
+.status-uploading{background:#ffe0b2;color:#e65100}
+.status-success{background:#c8e6c9;color:#2e7d32}
+.status-error{background:#ffcdd2;color:#c62828}
+
+.link-box{margin-top:8px;padding:8px 10px;background:#f1f3f4;border-radius:6px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.gdoc-link{color:#1a73e8;text-decoration:none;font-size:12.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.gdoc-link:hover{text-decoration:underline}
+.btn-copy{background:#fff;border:1px solid rgba(0,0,0,0.1);color:#5f6368;cursor:pointer;padding:5px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;transition:all .2s;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+.btn-copy:hover{background:#f8f9fa;color:#1a1a18;border-color:rgba(0,0,0,0.25)}
+
+.btn-primary{display:flex;width:100%;padding:14px;background:#1a1a18;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;margin-top:1.5rem;transition:background .2s;align-items:center;justify-content:center;gap:8px}
+.btn-primary:hover{background:#333}
+.btn-primary:disabled{background:#ccc;cursor:not-allowed}
+
+/* SWG Input */
+.swg-group{display:flex;align-items:center;gap:0;margin-bottom:1rem;border:1.5px solid rgba(0,0,0,0.15);border-radius:8px;overflow:hidden;background:#fff;transition:border-color .2s}
+.swg-group:focus-within{border-color:#1a1a18;box-shadow:0 0 0 3px rgba(26,26,24,0.08)}
+.swg-prefix,.swg-suffix{padding:10px 12px;background:#f5f5f2;font-size:14px;font-weight:500;color:#444;white-space:nowrap;border:none;flex-shrink:0}
+.swg-prefix{border-right:1px solid rgba(0,0,0,0.1)}
+.swg-suffix{border-left:1px solid rgba(0,0,0,0.1)}
+#swg-number{flex:1;border:none;outline:none;padding:10px 10px;font-size:15px;font-weight:600;color:#1a1a18;background:#fff;text-align:center;min-width:60px;letter-spacing:.03em}
+#swg-number::placeholder{color:#bbb;font-weight:400;font-size:13px}
+
+/* Sheet status */
+.sheet-status{margin-top:6px;padding:7px 10px;border-radius:6px;font-size:12.5px;display:flex;align-items:center;gap:6px}
+.sheet-status.ok{background:#e8f5e9;color:#2e7d32}
+.sheet-status.err{background:#ffebee;color:#c62828}
+.sheet-status.dup{background:#fff8e1;color:#e65100}
+.sheet-status.updating{background:#fff3e0;color:#e65100}
+
+.btn-toggle-log{background:none;border:none;color:#1a73e8;cursor:pointer;font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px}
+.btn-toggle-log:hover{text-decoration:underline}
+.log-container{display:none;margin-top:8px}
+#debug-log{background:#222;color:#0f0;font-family:monospace;padding:12px;border-radius:8px;max-height:180px;overflow-y:auto;font-size:12px;white-space:pre-wrap}
+
+.folder-info-box{font-size:12.5px;color:#5f6368;margin-top:6px;display:flex;align-items:center;gap:4px}
+.folder-link{color:#1a73e8;text-decoration:none;font-weight:500;display:inline-flex;align-items:center;gap:2px}
+.folder-link:hover{text-decoration:underline}
+
+.info-note{font-size:12px;color:#888;margin-top:6px;display:flex;align-items:flex-start;gap:5px;line-height:1.5}
+.info-note i{margin-top:1px;flex-shrink:0}
+
+/* ===== SETTINGS SECTION ===== */
+.btn-settings{background:none;border:none;color:#666;cursor:pointer;font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px;padding:8px 12px;border-radius:6px;transition:all .2s;position:fixed;bottom:20px;right:20px;background:#fff;border:1px solid rgba(0,0,0,0.1);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+.btn-settings:hover{background:#f0f0f0;color:#1a1a18}
+
+.settings-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center}
+.settings-overlay.active{display:flex}
+
+.settings-modal{background:#fff;border-radius:12px;padding:0;width:90%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.2);animation:slideUp .3s ease-out}
+
+@keyframes slideUp {
+  from{transform:translateY(20px);opacity:0}
+  to{transform:translateY(0);opacity:1}
+}
+
+.settings-header{padding:1.5rem;border-bottom:1px solid rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff}
+.settings-header h2{font-size:18px;margin:0;display:flex;align-items:center;gap:8px}
+.btn-close-settings{background:none;border:none;color:#666;cursor:pointer;font-size:18px;padding:0;display:flex;align-items:center;justify-content:center}
+.btn-close-settings:hover{color:#1a1a18}
+
+.settings-content{padding:1.5rem}
+.setting-group{margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(0,0,0,0.07)}
+.setting-group:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+
+.setting-label{font-size:13px;font-weight:600;color:#1a1a18;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.setting-label i{color:#666}
+
+.setting-input{width:100%;padding:10px 12px;border:1px solid rgba(0,0,0,0.15);border-radius:6px;font-size:13px;font-family:monospace;background:#f9f9f9;color:#1a1a18;margin-bottom:4px}
+.setting-input:focus{outline:none;border-color:#1a1a18;background:#fff}
+
+.setting-note{font-size:11px;color:#888;margin-top:4px;line-height:1.4}
+.setting-note a{color:#1a73e8;text-decoration:none}
+.setting-note a:hover{text-decoration:underline}
+
+.btn-settings-save{display:flex;width:100%;padding:12px;background:#1a1a18;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;margin-top:1rem;align-items:center;justify-content:center;gap:6px}
+.btn-settings-save:hover{background:#333}
+
+.btn-settings-reset{display:flex;width:100%;padding:10px;background:#ffebee;color:#c62828;border:1px solid #ffcdd2;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;margin-top:8px;align-items:center;justify-content:center;gap:6px}
+.btn-settings-reset:hover{background:#ffcdd2}
+
+.alert-success{padding:10px 12px;background:#e8f5e9;color:#2e7d32;border-radius:6px;font-size:12px;margin-top:8px;display:none;animation:fadeIn .3s}
+
+@keyframes fadeIn {
+  from{opacity:0}
+  to{opacity:1}
+}
+.alert-success.show{display:block}
+
+.setting-collapse{display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:#f5f5f2;border-radius:6px;margin-bottom:8px;user-select:none}
+.setting-collapse i{transition:transform .2s;color:#666}
+.setting-collapse.open i{transform:rotate(90deg)}
+.setting-collapse-content{display:none;padding:10px;background:#fafafa;border-radius:6px}
+.setting-collapse.open ~ .setting-collapse-content{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><i class="ti ti-file-text"></i> ระบบแปลงไฟล์และอัปโหลด โดย ศจฟ.(น.1)</h1>
+
+  <!-- Upload Card -->
+  <div class="card">
+    <div class="section-label"><i class="ti ti-file-upload"></i> เลือกไฟล์ที่ต้องการดำเนินการ</div>
+    <div class="dropzone" id="dropzone">
+      <i class="ti ti-cloud-upload"></i>
+      <p style="font-size:14px; font-weight:500;">ลากไฟล์เอกสารมาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</p>
+      <p style="font-size:12px; color:#666; margin-top:4px;">รองรับการแปลงไฟล์ .docx, .doc, .txt เป็น Google Docs อัตโนมัติ</p>
+      <input type="file" id="file-input" multiple />
+    </div>
+
+    <div class="file-list" id="file-list"></div>
+
+    <!-- SWG Input คั่นกลาง -->
+    <div style="margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid rgba(0,0,0,0.07);">
+      <div class="section-label" style="margin-bottom:8px;"><span style="display:flex;align-items:center;gap:6px;"><i class="ti ti-hash"></i> เลขที่ SWG สำหรับอัปเดต Google Sheet คอลัม S</span></div>
+      <div class="swg-group">
+        <span class="swg-prefix">ศน.1-</span>
+        <input type="number" id="swg-number" placeholder="กรอกเลขที่ เช่น 697" min="1" />
+        <span class="swg-suffix" id="swg-year">/2026</span>
+      </div>
+      <div class="info-note">
+        <i class="ti ti-info-circle"></i>
+        <span>ระบบจะค้นหาแถวที่มีเลขที่ SWG ตรงกับ <strong>ศน.1-[เลขที่]/<span id="year-display">2026</span></strong> ในคอลัม D ของแผ่นงานเดือนที่ถูกต้อง แล้วนำลิงก์ Google Docs ไปใส่ที่คอลัม S โดยอัตโนมัติ</span>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="btn-upload" disabled>
+      <i class="ti ti-file-import"></i> แปลงเป็น Google Docs พร้อมรับลิงค์
+    </button>
+  </div>
+
+  <div class="card" style="background:#1e1e1e; border:none; padding:1rem 1.5rem;">
+    <div class="section-label" style="color:#aaa; margin-bottom:0;">
+      <span style="display:flex; align-items:center; gap:6px;"><i class="ti ti-terminal-2"></i> บันทึกการทำงาน (Logs)</span>
+      <button class="btn-toggle-log" id="btn-toggle-log" onclick="toggleLog()">
+        <i class="ti ti-eye"></i> แสดง Logs
+      </button>
+    </div>
+    <div class="log-container" id="log-container">
+      <div id="debug-log">ระบบพร้อมทำงาน (เวอร์ชัน 4 - พร้อม Settings)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SETTINGS BUTTON ===== -->
+<button class="btn-settings" id="btn-settings-toggle">
+  <i class="ti ti-settings"></i> Settings
+</button>
+
+<!-- ===== SETTINGS MODAL ===== -->
+<div class="settings-overlay" id="settings-overlay">
+  <div class="settings-modal">
+    <div class="settings-header">
+      <h2><i class="ti ti-settings"></i> ตั้งค่าระบบ</h2>
+      <button class="btn-close-settings" id="btn-close-settings">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+    
+    <div class="settings-content">
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-brand-google"></i> Apps Script Web App URL</div>
+        <input type="text" id="setting-web-app-url" class="setting-input" placeholder="https://script.google.com/macros/s/..."/>
+        <div class="setting-note">ลิงค์สำหรับเรียกใช้งาน Google Apps Script โดยตรง</div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-table"></i> Google Sheet ID</div>
+        <input type="text" id="setting-sheet-id" class="setting-input" placeholder="1yqS_G0r9-QWy3-65B6JvnTvUsUMsuFysINV9jIMesr4"/>
+        <div class="setting-note">ID ของ Google Sheet ที่เก็บข้อมูลหลัก</div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-folder"></i> Google Drive Folder ID</div>
+        <input type="text" id="setting-folder-id" class="setting-input" placeholder="1G3pzzHwTg2cbtSXhfaQI13Em89NAEySx"/>
+        <div class="setting-note">ID โฟลเดอร์พื้นฐาน สำหรับจัดเก็บไฟล์ที่อัปโหลด</div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-calendar"></i> ปีค.ศ. (Gregorian Year)</div>
+        <input type="number" id="setting-gregorian-year" class="setting-input" placeholder="2026" min="2000"/>
+        <div class="setting-note">ปีค.ศ. สำหรับเลขที่ SWG (เช่น 2026 สำหรับ .../2026)</div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-calendar-event"></i> ปีพ.ศ. (Buddhist Year)</div>
+        <input type="number" id="setting-buddhist-year" class="setting-input" placeholder="2569" min="2500"/>
+        <div class="setting-note">ปีพ.ศ. สำหรับชื่อแผ่นงาน (เช่น มกราคม 2569)</div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-list-details"></i> ชื่อแผ่นงาน (Tab Names) - ตามลำดับเดือน</div>
+        <div style="background:#f9f9f9;border-radius:6px;padding:10px;font-size:12px;margin-bottom:8px;">
+          <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(0,0,0,0.1);">
+            <strong>จ.ต่อไปนี้ต้องตรงกับชื่อแผ่นงานใน Google Sheet (ลำดับ: ม.ค. - ธ.ค.)</strong>
+          </div>
+          <input type="text" id="setting-month-0" class="setting-input" placeholder="มกราคม 2569" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-1" class="setting-input" placeholder="กุมภาพันธ์ 2569" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-2" class="setting-input" placeholder="มีนาคม 2569" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-3" class="setting-input" placeholder="เมษายน 2569" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-4" class="setting-input" placeholder="พฤษภาคม 2569" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-5" class="setting-input" placeholder="มิถุนายน 2569" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-6" class="setting-input" placeholder="กรกฎาคม 2569" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-7" class="setting-input" placeholder="สิงหาคม 2569" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-8" class="setting-input" placeholder="กันยายน 2569" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-9" class="setting-input" placeholder="ตุลาคม 2569" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-10" class="setting-input" placeholder="พฤศจิกายน 2569" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-11" class="setting-input" placeholder="ธันวาคม 2569"/>
+        </div>
+        <div class="setting-note">ต้องตรงกับชื่อแผ่นงานใน Google Sheet ทุกประการ (รวมปี)</div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-columns"></i> Column References</div>
+        <label style="display:block;font-size:12px;color:#666;margin-bottom:8px;">
+          <strong>คอลัมน์ค้นหา SWG (ปกติคือ D):</strong>
+        </label>
+        <input type="text" id="setting-col-search" class="setting-input" placeholder="D" maxlength="2"/>
+        <label style="display:block;font-size:12px;color:#666;margin-top:10px;margin-bottom:8px;">
+          <strong>คอลัมน์บันทึกลิงค์ (ปกติคือ S):</strong>
+        </label>
+        <input type="text" id="setting-col-url" class="setting-input" placeholder="S" maxlength="2"/>
+        <div class="setting-note">ตัวอักษรคอลัมน์ Excel (A, B, C, ... Z, AA, AB, ฯลฯ)</div>
+      </div>
+
+      <button class="btn-settings-save" id="btn-settings-save">
+        <i class="ti ti-check"></i> บันทึกการตั้งค่า
+      </button>
+      <button class="btn-settings-reset" id="btn-settings-reset">
+        <i class="ti ti-refresh"></i> รีเซ็ตเป็นค่าเริ่มต้น
+      </button>
+      <div class="alert-success" id="alert-save-success">
+        <i class="ti ti-check"></i> บันทึกการตั้งค่าสำเร็จ
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== DEFAULT SETTINGS ===== 
+const DEFAULT_SETTINGS = {
+  webAppUrl: 'https://script.google.com/macros/s/AKfycbzjePova9hHYUR0Zjlsxc9xk2iV2Z2DpeHWhxqVQJS-7C1l76OS06e-zPWpbd4H2vWy/exec',
+  sheetId: '1yqS_G0r9-QWy3-65B6JvnTvUsUMsuFysINV9jIMesr4',
+  folderId: '1G3pzzHwTg2cbtSXhfaQI13Em89NAEySx',
+  gregorianYear: 2026,
+  buddhistYear: 2569,
+  monthNames: [
+    'มกราคม 2569','กุมภาพันธ์ 2569','มีนาคม 2569','เมษายน 2569',
+    'พฤษภาคม 2569','มิถุนายน 2569','กรกฎาคม 2569','สิงหาคม 2569',
+    'กันยายน 2569','ตุลาคม 2569','พฤศจิกายน 2569','ธันวาคม 2569'
+  ],
+  colSearch: 'D',
+  colUrl: 'S'
+};
+
+// ===== LOAD SETTINGS ===== 
+function loadSettings() {
+  const saved = localStorage.getItem('appSettings');
+  return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+}
+
+function saveSettings(settings) {
+  localStorage.setItem('appSettings', JSON.stringify(settings));
+}
+
+function resetSettings() {
+  saveSettings(DEFAULT_SETTINGS);
+  location.reload();
+}
+
+function updateUIFromSettings(settings) {
+  document.getElementById('setting-web-app-url').value = settings.webAppUrl;
+  document.getElementById('setting-sheet-id').value = settings.sheetId;
+  document.getElementById('setting-folder-id').value = settings.folderId;
+  document.getElementById('setting-gregorian-year').value = settings.gregorianYear;
+  document.getElementById('setting-buddhist-year').value = settings.buddhistYear;
+  document.getElementById('setting-col-search').value = settings.colSearch;
+  document.getElementById('setting-col-url').value = settings.colUrl;
+  
+  for(let i=0; i<12; i++) {
+    document.getElementById('setting-month-' + i).value = settings.monthNames[i];
+  }
+  
+  updateYearDisplay(settings.gregorianYear);
+}
+
+function updateYearDisplay(year) {
+  document.getElementById('swg-year').textContent = '/' + year;
+  document.getElementById('year-display').textContent = year;
+}
+
+// ===== SETTINGS MODAL EVENTS ===== 
+const settings_overlay = document.getElementById('settings-overlay');
+const btn_settings_toggle = document.getElementById('btn-settings-toggle');
+const btn_close_settings = document.getElementById('btn-close-settings');
+const btn_settings_save = document.getElementById('btn-settings-save');
+const btn_settings_reset = document.getElementById('btn-settings-reset');
+
+btn_settings_toggle.addEventListener('click', () => {
+  settings_overlay.classList.add('active');
+});
+
+btn_close_settings.addEventListener('click', () => {
+  settings_overlay.classList.remove('active');
+});
+
+settings_overlay.addEventListener('click', (e) => {
+  if(e.target === settings_overlay) {
+    settings_overlay.classList.remove('active');
+  }
+});
+
+btn_settings_save.addEventListener('click', () => {
+  const newSettings = {
+    webAppUrl: document.getElementById('setting-web-app-url').value.trim(),
+    sheetId: document.getElementById('setting-sheet-id').value.trim(),
+    folderId: document.getElementById('setting-folder-id').value.trim(),
+    gregorianYear: parseInt(document.getElementById('setting-gregorian-year').value) || 2026,
+    buddhistYear: parseInt(document.getElementById('setting-buddhist-year').value) || 2569,
+    monthNames: Array.from({length:12}, (_, i) => document.getElementById('setting-month-' + i).value.trim()),
+    colSearch: document.getElementById('setting-col-search').value.trim() || 'D',
+    colUrl: document.getElementById('setting-col-url').value.trim() || 'S'
+  };
+  
+  saveSettings(newSettings);
+  updateYearDisplay(newSettings.gregorianYear);
+  
+  const alert = document.getElementById('alert-save-success');
+  alert.classList.add('show');
+  setTimeout(() => alert.classList.remove('show'), 3000);
+  
+  dbg('✓ บันทึกการตั้งค่าสำเร็จ');
+});
+
+btn_settings_reset.addEventListener('click', () => {
+  if(confirm('คุณแน่ใจหรือว่าต้องการรีเซ็ตเป็นค่าเริ่มต้น?')) {
+    resetSettings();
+  }
+});
+
+// ===== MAIN APP CODE ===== 
+let SETTINGS = loadSettings();
+
+const WEB_APP_URL = SETTINGS.webAppUrl;
+const SHEET_ID = SETTINGS.sheetId;
+const SHEET_TAB_NAMES = SETTINGS.monthNames;
+const MONTHS = ['01_มกราคม','02_กุมภาพันธ์','03_มีนาคม','04_เมษายน','05_พฤษภาคม','06_มิถุนายน','07_กรกฎาคม','08_สิงหาคม','09_กันยายน','10_ตุลาคม','11_พฤศจิกายน','12_ธันวาคม'];
+
+let filesArray = [];
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+const fileList = document.getElementById('file-list');
+const btnUpload = document.getElementById('btn-upload');
+const debugLog = document.getElementById('debug-log');
+const logContainer = document.getElementById('log-container');
+const swgInput = document.getElementById('swg-number');
+
+function dbg(msg) {
+  const t = new Date().toLocaleTimeString();
+  debugLog.innerText += `\n[${t}] ${msg}`;
+  debugLog.scrollTop = debugLog.scrollHeight;
+}
+
+function toggleLog() {
+  const btn = document.getElementById('btn-toggle-log');
+  if (logContainer.style.display === 'block') {
+    logContainer.style.display = 'none';
+    btn.innerHTML = '<i class="ti ti-eye"></i> แสดง Logs';
+  } else {
+    logContainer.style.display = 'block';
+    btn.innerHTML = '<i class="ti ti-eye-off"></i> ซ่อน Logs';
+  }
+}
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.background = '#f0f0f0'; });
+dropzone.addEventListener('dragleave', () => dropzone.style.background = '#fafafa');
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.style.background = '#fafafa';
+  handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+function isConvertible(fileName) {
+  const ext = fileName.split('.').pop().toLowerCase();
+  return ['docx', 'doc', 'txt', 'odt'].includes(ext);
+}
+
+function getMonthIndex(fileName) {
+  const nameUpper = fileName.toUpperCase();
+  for(let i=0; i<MONTHS.length; i++) {
+    if(nameUpper.includes(MONTHS[i].split('_')[1].toUpperCase())) {
+      return i;
+    }
+  }
+  return new Date().getMonth();
+}
+
+function getYearTh(fileName) {
+  const yearMatch = fileName.match(/\d{4}/);
+  if(yearMatch) {
+    const year = parseInt(yearMatch[0]);
+    if(year >= 2500) return year;
+    return year + 543;
+  }
+  return SETTINGS.buddhistYear;
+}
+
+function handleFiles(fileList) {
+  for(let file of fileList) {
+    if(file.size === 0) continue;
+    
+    const month = getMonthIndex(file.name);
+    const yearTh = getYearTh(file.name);
+    
+    filesArray.push({
+      file: file,
+      month: month,
+      yearTh: yearTh,
+      isConvertible: isConvertible(file.name),
+      status: 'wait',
+      gdocUrl: '',
+      sheetStatus: null,
+      sheetStatusMsg: ''
+    });
+  }
+  render();
+}
+
+function render() {
+  fileList.innerHTML = '';
+  let hasWait = false;
+  
+  filesArray.forEach(f => {
+    if(f.status === 'wait') hasWait = true;
+    
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    
+    let statusTxt = 'รอดำเนินการ', badgeClass = 'status-wait';
+    if(f.status === 'uploading') { statusTxt = 'กำลังส่ง'; badgeClass = 'status-uploading'; }
+    if(f.status === 'success')   { statusTxt = 'สำเร็จ'; badgeClass = 'status-success'; }
+    if(f.status === 'error')     { statusTxt = 'ล้มเหลว'; badgeClass = 'status-error'; }
+
+    const actionText = f.isConvertible ? 'แปลงเป็น Google Docs' : 'อัปโหลดปกติ';
+    const expectedFolder = `พ.ศ. ${f.yearTh} > ${MONTHS[f.month]}`;
+
+    let htmlContent = `
+      <div class="file-row">
+        <div class="file-info">
+          <span class="file-name">${f.file.name}</span>
+          <span class="file-meta"><i class="ti ti-folder"></i> เป้าหมายโฟลเดอร์: ${expectedFolder} (${actionText})</span>
+        </div>
+        <span class="status-badge ${badgeClass}">${statusTxt}</span>
+      </div>`;
+
+    if(f.status === 'success') {
+      const finalFolderName = f.serverFolderName || expectedFolder;
+      htmlContent += `
+        <div class="folder-info-box">
+          <i class="ti ti-folder-check" style="color:#2e7d32;"></i> จัดเก็บในโฟลเดอร์:
+          <span style="font-weight:600; color:#1a1a18;">${finalFolderName}</span>
+          ${f.serverFolderUrl ? `<a href="${f.serverFolderUrl}" target="_blank" class="folder-link"><i class="ti ti-external-link"></i> เปิดโฟลเดอร์</a>` : ''}
+        </div>`;
+
+      if(f.gdocUrl) {
+        htmlContent += `
+          <div class="link-box">
+            <a href="${f.gdocUrl}" target="_blank" class="gdoc-link">
+              <i class="ti ti-external-link"></i> เปิดเอกสาร Google Docs
+            </a>
+            <button class="btn-copy" onclick="copyToClipboard('${f.gdocUrl}', this)" title="คัดลอกลิงก์">
+              <i class="ti ti-copy"></i> คัดลอกลิงก์
+            </button>
+          </div>`;
+      }
+
+      if(f.sheetStatus === 'updating') {
+        htmlContent += `<div class="sheet-status updating"><i class="ti ti-loader ti-spin"></i> กำลังอัปเดต Google Sheet คอลัม S...</div>`;
+      } else if(f.sheetStatus === 'ok') {
+        htmlContent += `<div class="sheet-status ok"><i class="ti ti-table-check"></i> อัปเดต Google Sheet คอลัม S สำเร็จแล้ว</div>`;
+      } else if(f.sheetStatus === 'dup') {
+        htmlContent += `<div class="sheet-status dup"><i class="ti ti-alert-circle"></i> ${f.sheetStatusMsg}</div>`;
+      } else if(f.sheetStatus && f.sheetStatus !== 'ok' && f.sheetStatus !== 'updating' && f.sheetStatus !== 'dup') {
+        htmlContent += `<div class="sheet-status err"><i class="ti ti-alert-triangle"></i> ${f.sheetStatus}</div>`;
+      }
+    }
+
+    item.innerHTML = htmlContent;
+    fileList.appendChild(item);
+  });
+
+  btnUpload.disabled = !hasWait;
+}
+
+function copyToClipboard(text, btnElement) {
+  navigator.clipboard.writeText(text).then(() => {
+    btnElement.innerHTML = '<i class="ti ti-check" style="color:#2e7d32;"></i> คัดลอกแล้ว';
+    setTimeout(() => { btnElement.innerHTML = '<i class="ti ti-copy"></i> คัดลอกลิงก์'; }, 2000);
+  }).catch(err => console.error('คัดลอกผิดพลาด:', err));
+}
+
+async function updateSheetColumnS(gdocUrl, swgNumber, monthIndex) {
+  const swgFull = `ศน.1-${swgNumber}/${SETTINGS.gregorianYear}`;
+  dbg(`กำลังค้นหา "${swgFull}" เริ่มจากเดือน ${SHEET_TAB_NAMES[monthIndex]} ถอยหลัง...`);
+
+  const payload = {
+    action: 'updateSheet',
+    sheetId: SHEET_ID,
+    swgValue: swgFull,
+    gdocUrl: gdocUrl,
+    fileMonth: monthIndex
+  };
+
+  const response = await fetch(WEB_APP_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json();
+  return data;
+}
+
+btnUpload.addEventListener('click', async () => {
+  const parentId = SETTINGS.folderId;
+  const swgNumber = swgInput.value.trim();
+
+  btnUpload.disabled = true;
+  dbg('--- เริ่มส่งไฟล์ข้ามเซิร์ฟเวอร์ ---');
+  if(swgNumber) dbg(`เลขที่ SWG ที่จะอัปเดต: ศน.1-${swgNumber}/${SETTINGS.gregorianYear}`);
+  else dbg('ไม่ได้กรอกเลขที่ SWG → ข้ามการอัปเดต Google Sheet');
+
+  for(let i=0; i<filesArray.length; i++) {
+    const f = filesArray[i];
+    if(f.status !== 'wait') continue;
+
+    f.status = 'uploading';
+    render();
+    dbg(`กำลังประมวลผล: "${f.file.name}"`);
+
+    try {
+      const reader = new FileReader();
+      const base64Data = await new Promise((resolve, reject) => {
+        reader.readAsDataURL(f.file);
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = e => reject(e);
+      });
+
+      const payload = {
+        name: f.file.name,
+        mimeType: f.file.type || 'application/octet-stream',
+        base64: base64Data,
+        parentId: parentId,
+        monthName: MONTHS[f.month],
+        yearTh: f.yearTh,
+        isConvertible: f.isConvertible
+      };
+
+      const response = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const resData = await response.json();
+
+      if(resData.status === 'success') {
+        f.status = 'success';
+        f.gdocUrl = resData.url;
+        if(resData.folderName) f.serverFolderName = resData.folderName;
+        if(resData.folderUrl) f.serverFolderUrl = resData.folderUrl;
+        dbg(`สำเร็จ! สิ้นสุดการประมวลผล: ${f.file.name}`);
+        render();
+
+        if(swgNumber && f.gdocUrl) {
+          f.sheetStatus = 'updating';
+          render();
+          try {
+            const sheetRes = await updateSheetColumnS(f.gdocUrl, swgNumber, f.month);
+            if(sheetRes.status === 'success') {
+              f.sheetStatus = 'ok';
+              let debugInfo = sheetRes.actionE ? ` [สถานะ E: ${sheetRes.actionE}, ตรวจเจอลิงก์: ${sheetRes.debugLink}]` : '';
+              dbg(`อัปเดต Sheet คอลัม S สำเร็จ! แผ่น "${sheetRes.sheet}" แถวที่ ${sheetRes.row} (ค้น ${sheetRes.searchedSheets} แผ่น)${debugInfo}`);
+            } else if(sheetRes.status === 'duplicate') {
+              f.sheetStatus = 'dup';
+              f.sheetStatusMsg = sheetRes.message;
+              dbg(`แจ้งเตือน: ${sheetRes.message}`);
+            } else {
+              f.sheetStatus = `อัปเดต Sheet ไม่สำเร็จ: ${sheetRes.message || 'ไม่ทราบสาเหตุ'}`;
+              dbg(`Sheet error: ${sheetRes.message}`);
+            }
+          } catch(sheetErr) {
+            f.sheetStatus = `เชื่อมต่อ Sheet ผิดพลาด: ${sheetErr.message}`;
+            dbg(`Sheet exception: ${sheetErr.message}`);
+          }
+          render();
+        }
+
+      } else {
+        f.status = 'error';
+        dbg(`ผิดพลาดจากฝั่งเซิร์ฟเวอร์: ${resData.message}`);
+        render();
+      }
+    } catch (err) {
+      f.status = 'error';
+      dbg(`เกิดข้อผิดพลาดในการยิง API: ${err.message}`);
+      render();
+    }
+  }
+  dbg('--- จบการประมวลผลทั้งหมด ---');
+});
+
+// ===== INITIALIZE ===== 
+updateUIFromSettings(SETTINGS);
+dbg('✓ ระบบพร้อมทำงาน (ดึงค่าจาก localStorage)');
+</script>
+</body>
+</html>
