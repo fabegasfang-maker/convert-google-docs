@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>แปลงเป็น Google Docs พร้อม Upload V4</title>
+<title>แปลง Switching Word เป็น Google Docs </title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -122,7 +122,7 @@ h1{font-size:20px;font-weight:500;margin-bottom:1.5rem;color:#1a1a18;display:fle
 </head>
 <body>
 <div class="wrap">
-  <h1><i class="ti ti-file-text"></i> ระบบแปลงไฟล์และอัปโหลด โดย ศจฟ.(น.1)</h1>
+  <h1><i class="ti ti-file-text"></i> ระบบแปลงไฟล์ Word เป็น Google Docs พร้อมส่ง link ขึ้นระบบ Dashboard แผนงานดับไฟ โดย ศจฟ.(น1)</h1>
 
   <!-- Upload Card -->
   <div class="card">
@@ -146,24 +146,24 @@ h1{font-size:20px;font-weight:500;margin-bottom:1.5rem;color:#1a1a18;display:fle
       </div>
       <div class="info-note">
         <i class="ti ti-info-circle"></i>
-        <span>ระบบจะค้นหาแถวที่มีเลขที่ SWG ตรงกับ <strong>ศน.1-[เลขที่]/<span id="year-display">2026</span></strong> ในคอลัม D ของแผ่นงานเดือนที่ถูกต้อง แล้วนำลิงก์ Google Docs ไปใส่ที่คอลัม S โดยอัตโนมัติ</span>
+        <span>ระบบจะค้นหาแถวที่มีเลขที่ SWG ตรงกับ <strong>ศน.1-[เลขที่]/<span id="year-display">2026</span></strong> ในคอลัม D ของแผ่นงาน แล้วนำลิงก์ Google Docs ไปใส่ในแผนงานดับไฟโดยอัตโนมัติ</span>
       </div>
     </div>
 
     <button class="btn-primary" id="btn-upload" disabled>
-      <i class="ti ti-file-import"></i> แปลงเป็น Google Docs พร้อมรับลิงค์
+      <i class="ti ti-file-import"></i> แปลงเป็น Google Docs พร้อมส่ง link ขึ้น Dashboard
     </button>
   </div>
 
-  <div class="card" style="background:#1e1e1e; border:none; padding:1rem 1.5rem;">
+  <div class="card" style="background:#f5f5f5; border:none; padding:1rem 1.5rem;">
     <div class="section-label" style="color:#aaa; margin-bottom:0;">
       <span style="display:flex; align-items:center; gap:6px;"><i class="ti ti-terminal-2"></i> บันทึกการทำงาน (Logs)</span>
-      <button class="btn-toggle-log" id="btn-toggle-log" onclick="toggleLog()">
+      <button class="btn-toggle-log" id="btn-toggle-log" onclick="toggleLog()"style="color:#555;">
         <i class="ti ti-eye"></i> แสดง Logs
       </button>
     </div>
     <div class="log-container" id="log-container">
-      <div id="debug-log">ระบบพร้อมทำงาน (เวอร์ชัน 4 - พร้อม Settings)</div>
+      <div id="debug-log">ระบบพร้อมทำงาน (เวอร์ชัน 4)</div>
     </div>
   </div>
 </div>
