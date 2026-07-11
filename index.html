@@ -553,6 +553,53 @@ btnUpload.addEventListener('click', async () => {
   const swgNumber = swgInput.value.trim();
 
   btnUpload.disabled = true;
+  dbg('--- เริ่มตรวจสอบข้อมูล ---');
+
+  // ============================================================
+  // ✅ เพิ่มใหม่: ขั้นตอนการตรวจสอบเลข SWG ซ้ำก่อนเริ่มอัปโหลด
+  // ============================================================
+  if (swgNumber && filesArray.length > 0) {
+    // หาเดือนของไฟล์แรกในคิวเพื่อใช้เป็นจุดเริ่มต้นค้นหา
+    const sampleMonthIdx = filesArray[0].month; 
+    const swgFull = `ศน.1-${swgNumber}/${SETTINGS.gregorianYear}`;
+    
+    dbg(`กำลังส่งคำขอตรวจสอบความซ้ำซ้อนของเลข SWG: ${swgFull}...`);
+    try {
+      const checkPayload = {
+        action: 'checkDuplicateSwg',
+        sheetId: SHEET_ID,
+        swgValue: swgFull,
+        fileMonth: sampleMonthIdx
+      };
+      
+      const checkResponse = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify(checkPayload)
+      });
+      const checkData = await checkResponse.json();
+      
+      if (checkData.status === 'success' && checkData.count > 1) {
+        let details = checkData.matches.map(m => `แผ่นงาน "${m.sheet}" แถวที่ ${m.row}`).join('\n');
+        let userConfirm = confirm(`[คำเตือน!!] ตรวจพบเลขที่ SWG ซ้ำกันทั้งหมด ${checkData.count} แถว ในระบบ:\n\n${details}\n\nคุณต้องการจะดำเนินการต่อเพื่ออัปเดตข้อมูล (ระบบจะอัปเดตแถวแรกสุดที่ค้นพบ) ใช่หรือไม่?`);
+        
+        if (!userConfirm) {
+          dbg('❌ ผู้ใช้ยกเลิกการทำงานเนื่องจากพบเลข SWG ซ้ำกันในระบบ');
+          btnUpload.disabled = false;
+          return; // สั่งหยุดทำงานทันที
+        }
+        dbg('⚠ ผู้ใช้กดยืนยันให้ดำเนินงานต่อ แม้ว่าจะพบเลข SWG ซ้ำกัน');
+      } else {
+        dbg('✓ ตรวจสอบเสร็จสิ้น: ไม่พบข้อมูลซ้ำซ้อนระดับอันตราย');
+      }
+    } catch (checkErr) {
+      dbg(`[ข้ามการเตือนซ้ำ] เกิดข้อผิดพลาดขณะติดต่อเพื่อตรวจสอบตัวซ้ำ: ${checkErr.message}`);
+      // หากเกิดปัญหาการเชื่อมต่อให้ดำเนินงานต่อเผื่อกรณีฉุกเฉิน
+    }
+  }
+
+  // ============================================================
+  // เริ่มกระบวนการอัปโหลดไฟล์ (โค้ดลูปเดิมของคุณ...)
+  // ============================================================
   dbg('--- เริ่มส่งไฟล์ข้ามเซิร์ฟเวอร์ ---');
   if(swgNumber) dbg(`เลขที่ SWG ที่จะอัปเดต: ศน.1-${swgNumber}/${SETTINGS.gregorianYear}`);
   else dbg('ไม่ได้กรอกเลขที่ SWG → ข้ามการอัปเดต Google Sheet');
