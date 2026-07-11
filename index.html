@@ -580,7 +580,7 @@ btnUpload.addEventListener('click', async () => {
       
       if (checkData.status === 'success' && checkData.count > 1) {
         let details = checkData.matches.map(m => `แผ่นงาน "${m.sheet}" แถวที่ ${m.row}`).join('\n');
-        let userConfirm = confirm(`[คำเตือน!!] ตรวจพบเลขที่ SWG ซ้ำกันทั้งหมด ${checkData.count} แถว ในระบบ:\n\n${details}\n\nคุณต้องการจะดำเนินการต่อเพื่ออัปเดตข้อมูล (ระบบจะอัปเดตแถวแรกสุดที่ค้นพบ) ใช่หรือไม่?`);
+        let userConfirm = confirm(`[คำเตือน!!] ตรวจพบเลขที่ SWG ซ้ำกัน ${checkData.count} แถว ในระบบ:\n\n${details}\n\nคุณต้องการอัพโหลดทั้งหมดใช่หรือไม่?`);
         
         if (!userConfirm) {
           dbg('❌ ผู้ใช้ยกเลิกการทำงานเนื่องจากพบเลข SWG ซ้ำกันในระบบ');
