@@ -505,7 +505,7 @@ function render() {
       if(f.sheetStatus === 'updating') {
         htmlContent += `<div class="sheet-status updating"><i class="ti ti-loader ti-spin"></i> กำลังอัปเดต Google Sheet คอลัม S...</div>`;
       } else if(f.sheetStatus === 'ok') {
-        htmlContent += `<div class="sheet-status ok"><i class="ti ti-table-check"></i> อัปเดต Google Sheet คอลัม S สำเร็จแล้ว</div>`;
+        htmlContent += `<div class="sheet-status ok"><i class="ti ti-table-check"></i> อัปเดต DashBoard แผนดับไฟ สำเร็จแล้ว</div>`;
       } else if(f.sheetStatus === 'dup') {
         htmlContent += `<div class="sheet-status dup"><i class="ti ti-alert-circle"></i> ${f.sheetStatusMsg}</div>`;
       } else if(f.sheetStatus && f.sheetStatus !== 'ok' && f.sheetStatus !== 'updating' && f.sheetStatus !== 'dup') {
