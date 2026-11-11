@@ -1,1 +1,291 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>[TEST 2570] แปลง Switching Word เป็น Google Docs</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f2;min-height:100vh;padding:2rem 1rem;color:#1a1a18}
+.wrap{max-width:660px;margin:0 auto}
+h1{font-size:20px;font-weight:500;margin-bottom:1.5rem;color:#1a1a18;display:flex;align-items:center;gap:8px}
+.card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1.5rem;margin-bottom:1rem}
+.section-label{font-size:12px;font-weight:500;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.dropzone{border:2px dashed rgba(0,0,0,0.15);border-radius:12px;padding:2.5rem 2rem;text-align:center;background:#fafafa;cursor:pointer;transition:all .2s}
+.dropzone:hover{background:#f0f0f0;border-color:#1a1a18}
+.dropzone i{font-size:36px;color:#1a1a18;margin-bottom:8px;display:block}
+#file-input{display:none}
+.file-list{margin-top:1rem}
+.file-item{display:flex;flex-direction:column;padding:12px;border-bottom:1px solid rgba(0,0,0,0.06);font-size:14px;background:#fff;margin-bottom:6px;border-radius:6px}
+.file-row{display:flex;align-items:center;justify-content:space-between}
+.file-info{flex:1;display:flex;flex-direction:column;padding-right:10px}
+.file-name{font-weight:500;word-break:break-all}
+.file-meta{font-size:12px;color:#666;margin-top:2px;display:flex;align-items:center;gap:4px}
+.status-badge{font-size:11px;padding:3px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.status-wait{background:#e0e0e0;color:#333}
+.status-uploading{background:#ffe0b2;color:#e65100}
+.status-success{background:#c8e6c9;color:#2e7d32}
+.status-error{background:#ffcdd2;color:#c62828}
+
+.link-box{margin-top:8px;padding:8px 10px;background:#f1f3f4;border-radius:6px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.gdoc-link{color:#1a73e8;text-decoration:none;font-size:12.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.gdoc-link:hover{text-decoration:underline}
+.btn-copy{background:#fff;border:1px solid rgba(0,0,0,0.1);color:#5f6368;cursor:pointer;padding:5px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;transition:all .2s;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+.btn-copy:hover{background:#f8f9fa;color:#1a1a18;border-color:rgba(0,0,0,0.25)}
+
+.btn-primary{display:flex;width:100%;padding:14px;background:#1a1a18;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;margin-top:1.5rem;transition:background .2s;align-items:center;justify-content:center;gap:8px}
+.btn-primary:hover{background:#333}
+.btn-primary:disabled{background:#ccc;cursor:not-allowed}
+
+/* SWG Input */
+.swg-group{display:flex;align-items:center;gap:0;margin-bottom:1rem;border:1.5px solid rgba(0,0,0,0.15);border-radius:8px;overflow:hidden;background:#fff;transition:border-color .2s}
+.swg-group:focus-within{border-color:#1a1a18;box-shadow:0 0 0 3px rgba(26,26,24,0.08)}
+.swg-prefix,.swg-suffix{padding:10px 12px;background:#f5f5f2;font-size:14px;font-weight:500;color:#444;white-space:nowrap;border:none;flex-shrink:0}
+.swg-prefix{border-right:1px solid rgba(0,0,0,0.1)}
+.swg-suffix{border-left:1px solid rgba(0,0,0,0.1)}
+#swg-number{flex:1;border:none;outline:none;padding:10px 10px;font-size:15px;font-weight:600;color:#1a1a18;background:#fff;text-align:center;min-width:60px;letter-spacing:.03em}
+#swg-number::placeholder{color:#bbb;font-weight:400;font-size:13px}
+
+/* Sheet status */
+.sheet-status{margin-top:6px;padding:7px 10px;border-radius:6px;font-size:12.5px;display:flex;align-items:center;gap:6px}
+.sheet-status.ok{background:#e8f5e9;color:#2e7d32}
+.sheet-status.err{background:#ffebee;color:#c62828}
+.sheet-status.dup{background:#fff8e1;color:#e65100}
+.sheet-status.updating{background:#fff3e0;color:#e65100}
+
+.btn-toggle-log{background:none;border:none;color:#1a73e8;cursor:pointer;font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px}
+.btn-toggle-log:hover{text-decoration:underline}
+.log-container{display:none;margin-top:8px}
+#debug-log{background:#222;color:#0f0;font-family:monospace;padding:12px;border-radius:8px;max-height:180px;overflow-y:auto;font-size:12px;white-space:pre-wrap}
+
+.folder-info-box{font-size:12.5px;color:#5f6368;margin-top:6px;display:flex;align-items:center;gap:4px}
+.folder-link{color:#1a73e8;text-decoration:none;font-weight:500;display:inline-flex;align-items:center;gap:2px}
+.folder-link:hover{text-decoration:underline}
+
+.info-note{font-size:12px;color:#888;margin-top:6px;display:flex;align-items:flex-start;gap:5px;line-height:1.5}
+.info-note i{margin-top:1px;flex-shrink:0}
+
+/* ===== SETTINGS SECTION ===== */
+.btn-settings{background:none;border:none;color:#666;cursor:pointer;font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px;padding:8px 12px;border-radius:6px;transition:all .2s;position:fixed;bottom:20px;right:20px;background:#fff;border:1px solid rgba(0,0,0,0.1);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+.btn-settings:hover{background:#f0f0f0;color:#1a1a18}
+
+.settings-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center}
+.settings-overlay.active{display:flex}
+
+.settings-modal{background:#fff;border-radius:12px;padding:0;width:90%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.2);animation:slideUp .3s ease-out}
+
+@keyframes slideUp {
+  from{transform:translateY(20px);opacity:0}
+  to{transform:translateY(0);opacity:1}
+}
+
+.settings-header{padding:1.5rem;border-bottom:1px solid rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff}
+.settings-header h2{font-size:18px;margin:0;display:flex;align-items:center;gap:8px}
+.btn-close-settings{background:none;border:none;color:#666;cursor:pointer;font-size:18px;padding:0;display:flex;align-items:center;justify-content:center}
+.btn-close-settings:hover{color:#1a1a18}
+
+.settings-content{padding:1.5rem}
+.setting-group{margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(0,0,0,0.07)}
+.setting-group:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+
+.setting-label{font-size:13px;font-weight:600;color:#1a1a18;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.setting-label i{color:#666}
+
+.setting-input{width:100%;padding:10px 12px;border:1px solid rgba(0,0,0,0.15);border-radius:6px;font-size:13px;font-family:monospace;background:#f9f9f9;color:#1a1a18;margin-bottom:4px}
+.setting-input:focus{outline:none;border-color:#1a1a18;background:#fff}
+
+.setting-note{font-size:11px;color:#888;margin-top:4px;line-height:1.4}
+.setting-note a{color:#1a73e8;text-decoration:none}
+.setting-note a:hover{text-decoration:underline}
+
+.btn-settings-save{display:flex;width:100%;padding:12px;background:#1a1a18;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;margin-top:1rem;align-items:center;justify-content:center;gap:6px}
+.btn-settings-save:hover{background:#333}
+
+.btn-settings-reset{display:flex;width:100%;padding:10px;background:#ffebee;color:#c62828;border:1px solid #ffcdd2;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;margin-top:8px;align-items:center;justify-content:center;gap:6px}
+.btn-settings-reset:hover{background:#ffcdd2}
+
+.alert-success{padding:10px 12px;background:#e8f5e9;color:#2e7d32;border-radius:6px;font-size:12px;margin-top:8px;display:none;animation:fadeIn .3s}
+
+@keyframes fadeIn {
+  from{opacity:0}
+  to{opacity:1}
+}
+.alert-success.show{display:block}
+
+.setting-collapse{display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:#f5f5f2;border-radius:6px;margin-bottom:8px;user-select:none}
+.setting-collapse i{transition:transform .2s;color:#666}
+.setting-collapse.open i{transform:rotate(90deg)}
+.setting-collapse-content{display:none;padding:10px;background:#fafafa;border-radius:6px}
+.setting-collapse.open ~ .setting-collapse-content{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 style="flex-wrap:wrap;gap:10px;">
+    <span style="background:#c62828;color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;letter-spacing:0.05em;">TEST 2570</span>
+    <span><i class="ti ti-file-text"></i> ระบบแปลงไฟล์ Word เป็น Google Docs พร้อมส่ง link ขึ้นระบบ Dashboard แผนงานดับไฟ โดย ศจฟ.(น1)</span>
+  </h1>
+  <p style="font-size:13px;color:#c62828;margin:-1rem 0 1.25rem 0;font-weight:500;">⚠️ เวอร์ชันทดสอบสำหรับปี 2570 — ไม่กระทบระบบจริง</p>
+
+  <!-- Upload Card -->
+  <div class="card">
+    <div class="section-label"><i class="ti ti-file-upload"></i> </div>
+    <div class="dropzone" id="dropzone">
+      <i class="ti ti-cloud-upload"></i>
+      <p style="font-size:14px; font-weight:500;">ลากไฟล์เอกสารมาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</p>
+      <p style="font-size:12px; color:#666; margin-top:4px;">รองรับการแปลงไฟล์ .docx, .doc, .txt เป็น Google Docs อัตโนมัติ</p>
+      <input type="file" id="file-input" multiple />
+    </div>
+
+    <div class="file-list" id="file-list"></div>
+
+    <!-- SWG Input คั่นกลาง -->
+    <div style="margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid rgba(0,0,0,0.07);">
+      <div class="section-label" style="margin-bottom:8px;"><span style="display:flex;align-items:center;gap:6px;"><i class="ti ti-hash"></i> กรอกเลขที่ SWG ที่ท่านจองไว้ </span></div>
+      <div class="swg-group">
+        <span class="swg-prefix">ศน.1-</span>
+        <input type="number" id="swg-number" placeholder="กรอกเลขที่ เช่น 697" min="1" />
+        <span class="swg-suffix" id="swg-year">/2027</span>
+      </div>
+      <div class="info-note">
+        <i class="ti ti-info-circle"></i>
+        <span>ระบบจะค้นหาแถวที่มีเลขที่ SWG ตรงกับ <strong>ศน.1-[เลขที่]/<span id="year-display">2027</span></strong> ของแผ่นงาน แล้วนำลิงก์ Google Docs ไปใส่ในแผนงานดับไฟโดยอัตโนมัติ</span>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="btn-upload" disabled>
+      <i class="ti ti-file-import"></i> แปลงเป็น Google Docs พร้อมส่ง link ขึ้น Dashboard
+    </button>
+  </div>
+
+  <div class="card" style="background:#f5f5f5; border:none; padding:1rem 1.5rem;">
+    <div class="section-label" style="color:#aaa; margin-bottom:0;">
+      <span style="display:flex; align-items:center; gap:6px;"><i class="ti ti-terminal-2"></i> บันทึกการทำงาน (Logs)</span>
+      <button class="btn-toggle-log" id="btn-toggle-log" onclick="toggleLog()"style="color:#555;">
+        <i class="ti ti-eye"></i> แสดง Logs
+      </button>
+    </div>
+    <div class="log-container" id="log-container">
+      <div id="debug-log">ระบบพร้อมทำงาน (เวอร์ชันทดสอบ 2570)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SETTINGS BUTTON ===== -->
+<button class="btn-settings" id="btn-settings-toggle">
+  <i class="ti ti-settings"></i> Settings
+</button>
+
+<!-- ===== SETTINGS MODAL ===== -->
+<div class="settings-overlay" id="settings-overlay">
+  <div class="settings-modal">
+    <div class="settings-header">
+      <h2><i class="ti ti-settings"></i> ตั้งค่าระบบ</h2>
+      <button class="btn-close-settings" id="btn-close-settings">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+    
+    <div class="settings-content">
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-brand-google"></i> Apps Script Web App URL</div>
+        <input type="text" id="setting-web-app-url" class="setting-input" placeholder="https://script.google.com/macros/s/..."/>
+        <div class="setting-note">ลิงค์สำหรับเรียกใช้งาน Google Apps Script โดยตรง</div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-table"></i> Google Sheet ID</div>
+        <input type="text" id="setting-sheet-id" class="setting-input" placeholder="1yqS_G0r9-QWy3-65B6JvnTvUsUMsuFysINV9jIMesr4"/>
+        <div class="setting-note">ID ของ Google Sheet ที่เก็บข้อมูลหลัก</div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-folder"></i> Google Drive Folder ID</div>
+        <input type="text" id="setting-folder-id" class="setting-input" placeholder="1G3pzzHwTg2cbtSXhfaQI13Em89NAEySx"/>
+        <div class="setting-note">ID โฟลเดอร์พื้นฐาน สำหรับจัดเก็บไฟล์ที่อัปโหลด</div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-calendar"></i> ปีค.ศ. (Gregorian Year)</div>
+        <input type="number" id="setting-gregorian-year" class="setting-input" placeholder="2027" min="2000"/>
+        <div class="setting-note">ปีค.ศ. สำหรับเลขที่ SWG (เช่น 2027 สำหรับ .../2027)</div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-calendar-event"></i> ปีพ.ศ. (Buddhist Year)</div>
+        <input type="number" id="setting-buddhist-year" class="setting-input" placeholder="2570" min="2500"/>
+        <div class="setting-note">ปีพ.ศ. สำหรับชื่อแผ่นงาน (เช่น มกราคม 2570)</div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-list-details"></i> ชื่อแผ่นงาน (Tab Names) - ตามลำดับเดือน</div>
+        <div style="background:#f9f9f9;border-radius:6px;padding:10px;font-size:12px;margin-bottom:8px;">
+          <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(0,0,0,0.1);">
+            <strong>จ.ต่อไปนี้ต้องตรงกับชื่อแผ่นงานใน Google Sheet (ลำดับ: ม.ค. - ธ.ค.)</strong>
+          </div>
+          <input type="text" id="setting-month-0" class="setting-input" placeholder="มกราคม 2570" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-1" class="setting-input" placeholder="กุมภาพันธ์ 2570" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-2" class="setting-input" placeholder="มีนาคม 2570" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-3" class="setting-input" placeholder="เมษายน 2570" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-4" class="setting-input" placeholder="พฤษภาคม 2570" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-5" class="setting-input" placeholder="มิถุนายน 2570" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-6" class="setting-input" placeholder="กรกฎาคม 2570" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-7" class="setting-input" placeholder="สิงหาคม 2570" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-8" class="setting-input" placeholder="กันยายน 2570" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-9" class="setting-input" placeholder="ตุลาคม 2570" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-10" class="setting-input" placeholder="พฤศจิกายน 2570" style="margin-bottom:6px;"/>
+          <input type="text" id="setting-month-11" class="setting-input" placeholder="ธันวาคม 2570"/>
+        </div>
+        <div class="setting-note">ต้องตรงกับชื่อแผ่นงานใน Google Sheet ทุกประการ (รวมปี)</div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label"><i class="ti ti-columns"></i> Column References</div>
+        <label style="display:block;font-size:12px;color:#666;margin-bottom:8px;">
+          <strong>คอลัมน์ค้นหา SWG (ปกติคือ D):</strong>
+        </label>
+        <input type="text" id="setting-col-search" class="setting-input" placeholder="D" maxlength="2"/>
+        <label style="display:block;font-size:12px;color:#666;margin-top:10px;margin-bottom:8px;">
+          <strong>คอลัมน์บันทึกลิงค์ (ปกติคือ S):</strong>
+        </label>
+        <input type="text" id="setting-col-url" class="setting-input" placeholder="S" maxlength="2"/>
+        <div class="setting-note">ตัวอักษรคอลัมน์ Excel (A, B, C, ... Z, AA, AB, ฯลฯ)</div>
+      </div>
+
+      <button class="btn-settings-save" id="btn-settings-save">
+        <i class="ti ti-check"></i> บันทึกการตั้งค่า
+      </button>
+      <button class="btn-settings-reset" id="btn-settings-reset">
+        <i class="ti ti-refresh"></i> รีเซ็ตเป็นค่าเริ่มต้น
+      </button>
+      <div class="alert-success" id="alert-save-success">
+        <i class="ti ti-check"></i> บันทึกการตั้งค่าสำเร็จ
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* FULL SCRIPT IS IN LOCAL FILE - this push was incomplete due to size limits.
+   Please download the working file from conversation or re-upload via GitHub web UI.
+   Key defaults already set in HTML above: year 2027/2570, TEST badge, localStorage key appSettings_test2570.
+*/
+const DEFAULT_SETTINGS = {
+  webAppUrl: 'https://script.google.com/macros/s/AKfycbzjePova9hHYUR0Zjlsxc9xk2iV2Z2DpeHWhxqVQJS-7C1l76OS06e-zPWpbd4H2vWy/exec',
+  sheetId: '1yqS_G0r9-QWy3-65B6JvnTvUsUMsuFysINV9jIMesr4',
+  folderId: '1G3pzzHwTg2cbtSXhfaQI13Em89NAEySx',
+  gregorianYear: 2027,
+  buddhistYear: 2570,
+  monthNames: [
+    'มกราคม 2570','กุมภาพันธ์ 2570','มีนาคม 2570','เมษายน 2570',
+    'พฤษภาคม 2570','มิถุนายน 2570','กรกฎาคม 2570','สิงหาคม 2570',
+    'กันยายน 2570','ตุลาคม 2570','พฤศจิกายน 2570','ธันวาคม 2570'
+  ],
+  colSearch: 'D',
+  colUrl: 'S'
+};
+alert('ไฟล์ script ยังไม่ครบ — กรุณาอัปโหลดไฟล์เต็มจาก GitHub หรือติดต่อผู้ดูแล');
+</script>
+</body>
+</html>
