@@ -267,10 +267,7 @@ h1{font-size:20px;font-weight:500;margin-bottom:1.5rem;color:#1a1a18;display:fle
 </div>
 
 <script>
-/* FULL SCRIPT IS IN LOCAL FILE - this push was incomplete due to size limits.
-   Please download the working file from conversation or re-upload via GitHub web UI.
-   Key defaults already set in HTML above: year 2027/2570, TEST badge, localStorage key appSettings_test2570.
-*/
+// ===== DEFAULT SETTINGS ===== 
 const DEFAULT_SETTINGS = {
   webAppUrl: 'https://script.google.com/macros/s/AKfycbzjePova9hHYUR0Zjlsxc9xk2iV2Z2DpeHWhxqVQJS-7C1l76OS06e-zPWpbd4H2vWy/exec',
   sheetId: '1yqS_G0r9-QWy3-65B6JvnTvUsUMsuFysINV9jIMesr4',
@@ -285,7 +282,410 @@ const DEFAULT_SETTINGS = {
   colSearch: 'D',
   colUrl: 'S'
 };
-alert('ไฟล์ script ยังไม่ครบ — กรุณาอัปโหลดไฟล์เต็มจาก GitHub หรือติดต่อผู้ดูแล');
+
+// ===== LOAD SETTINGS ===== 
+function loadSettings() {
+  const saved = localStorage.getItem('appSettings_test2570');
+  return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+}
+
+function saveSettings(settings) {
+  localStorage.setItem('appSettings_test2570', JSON.stringify(settings));
+}
+
+function resetSettings() {
+  saveSettings(DEFAULT_SETTINGS);
+  location.reload();
+}
+
+function updateUIFromSettings(settings) {
+  document.getElementById('setting-web-app-url').value = settings.webAppUrl;
+  document.getElementById('setting-sheet-id').value = settings.sheetId;
+  document.getElementById('setting-folder-id').value = settings.folderId;
+  document.getElementById('setting-gregorian-year').value = settings.gregorianYear;
+  document.getElementById('setting-buddhist-year').value = settings.buddhistYear;
+  document.getElementById('setting-col-search').value = settings.colSearch;
+  document.getElementById('setting-col-url').value = settings.colUrl;
+  
+  for(let i=0; i<12; i++) {
+    document.getElementById('setting-month-' + i).value = settings.monthNames[i];
+  }
+  
+  updateYearDisplay(settings.gregorianYear);
+}
+
+function updateYearDisplay(year) {
+  document.getElementById('swg-year').textContent = '/' + year;
+  document.getElementById('year-display').textContent = year;
+}
+
+// ===== SETTINGS MODAL EVENTS ===== 
+const settings_overlay = document.getElementById('settings-overlay');
+const btn_settings_toggle = document.getElementById('btn-settings-toggle');
+const btn_close_settings = document.getElementById('btn-close-settings');
+const btn_settings_save = document.getElementById('btn-settings-save');
+const btn_settings_reset = document.getElementById('btn-settings-reset');
+
+btn_settings_toggle.addEventListener('click', () => {
+  settings_overlay.classList.add('active');
+});
+
+btn_close_settings.addEventListener('click', () => {
+  settings_overlay.classList.remove('active');
+});
+
+settings_overlay.addEventListener('click', (e) => {
+  if(e.target === settings_overlay) {
+    settings_overlay.classList.remove('active');
+  }
+});
+
+btn_settings_save.addEventListener('click', () => {
+  const newSettings = {
+    webAppUrl: document.getElementById('setting-web-app-url').value.trim(),
+    sheetId: document.getElementById('setting-sheet-id').value.trim(),
+    folderId: document.getElementById('setting-folder-id').value.trim(),
+    gregorianYear: parseInt(document.getElementById('setting-gregorian-year').value) || 2027,
+    buddhistYear: parseInt(document.getElementById('setting-buddhist-year').value) || 2570,
+    monthNames: Array.from({length:12}, (_, i) => document.getElementById('setting-month-' + i).value.trim()),
+    colSearch: document.getElementById('setting-col-search').value.trim() || 'D',
+    colUrl: document.getElementById('setting-col-url').value.trim() || 'S'
+  };
+  
+  saveSettings(newSettings);
+  updateYearDisplay(newSettings.gregorianYear);
+  
+  const alert = document.getElementById('alert-save-success');
+  alert.classList.add('show');
+  setTimeout(() => alert.classList.remove('show'), 3000);
+  
+  dbg('✓ บันทึกการตั้งค่าสำเร็จ');
+});
+
+btn_settings_reset.addEventListener('click', () => {
+  if(confirm('คุณแน่ใจหรือว่าต้องการรีเซ็ตเป็นค่าเริ่มต้น?')) {
+    resetSettings();
+  }
+});
+
+// ===== MAIN APP CODE ===== 
+let SETTINGS = loadSettings();
+
+const WEB_APP_URL = SETTINGS.webAppUrl;
+const SHEET_ID = SETTINGS.sheetId;
+const SHEET_TAB_NAMES = SETTINGS.monthNames;
+const MONTHS = ['01_มกราคม','02_กุมภาพันธ์','03_มีนาคม','04_เมษายน','05_พฤษภาคม','06_มิถุนายน','07_กรกฎาคม','08_สิงหาคม','09_กันยายน','10_ตุลาคม','11_พฤศจิกายน','12_ธันวาคม'];
+
+let filesArray = [];
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+const fileList = document.getElementById('file-list');
+const btnUpload = document.getElementById('btn-upload');
+const debugLog = document.getElementById('debug-log');
+const logContainer = document.getElementById('log-container');
+const swgInput = document.getElementById('swg-number');
+
+function dbg(msg) {
+  const t = new Date().toLocaleTimeString();
+  debugLog.innerText += `\n[${t}] ${msg}`;
+  debugLog.scrollTop = debugLog.scrollHeight;
+}
+
+function toggleLog() {
+  const btn = document.getElementById('btn-toggle-log');
+  if (logContainer.style.display === 'block') {
+    logContainer.style.display = 'none';
+    btn.innerHTML = '<i class="ti ti-eye"></i> แสดง Logs';
+  } else {
+    logContainer.style.display = 'block';
+    btn.innerHTML = '<i class="ti ti-eye-off"></i> ซ่อน Logs';
+  }
+}
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.background = '#f0f0f0'; });
+dropzone.addEventListener('dragleave', () => dropzone.style.background = '#fafafa');
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.style.background = '#fafafa';
+  handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+function isConvertible(fileName) {
+  const ext = fileName.split('.').pop().toLowerCase();
+  return ['docx', 'doc', 'txt', 'odt'].includes(ext);
+}
+
+function getMonthIndex(fileName) {
+  const nameUpper = fileName.toUpperCase();
+  for(let i=0; i<MONTHS.length; i++) {
+    if(nameUpper.includes(MONTHS[i].split('_')[1].toUpperCase())) {
+      return i;
+    }
+  }
+  return new Date().getMonth();
+}
+
+function getYearTh(fileName) {
+  const yearMatch = fileName.match(/\d{4}/);
+  if(yearMatch) {
+    const year = parseInt(yearMatch[0]);
+    if(year >= 2500) return year;
+    return year + 543;
+  }
+  return SETTINGS.buddhistYear;
+}
+
+function handleFiles(fileList) {
+  for(let file of fileList) {
+    if(file.size === 0) continue;
+    
+    const month = getMonthIndex(file.name);
+    const yearTh = getYearTh(file.name);
+    
+    filesArray.push({
+      file: file,
+      month: month,
+      yearTh: yearTh,
+      isConvertible: isConvertible(file.name),
+      status: 'wait',
+      gdocUrl: '',
+      sheetStatus: null,
+      sheetStatusMsg: ''
+    });
+  }
+  render();
+}
+
+function render() {
+  fileList.innerHTML = '';
+  let hasWait = false;
+  
+  filesArray.forEach(f => {
+    if(f.status === 'wait') hasWait = true;
+    
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    
+    let statusTxt = 'รอดำเนินการ', badgeClass = 'status-wait';
+    if(f.status === 'uploading') { statusTxt = 'กำลังส่ง'; badgeClass = 'status-uploading'; }
+    if(f.status === 'success')   { statusTxt = 'สำเร็จ'; badgeClass = 'status-success'; }
+    if(f.status === 'error')     { statusTxt = 'ล้มเหลว'; badgeClass = 'status-error'; }
+
+    const actionText = f.isConvertible ? 'แปลงเป็น Google Docs' : 'อัปโหลดปกติ';
+    const expectedFolder = `พ.ศ. ${f.yearTh} > ${MONTHS[f.month]}`;
+
+    let htmlContent = `
+      <div class="file-row">
+        <div class="file-info">
+          <span class="file-name">${f.file.name}</span>
+          <span class="file-meta"><i class="ti ti-folder"></i> เป้าหมายโฟลเดอร์: ${expectedFolder} (${actionText})</span>
+        </div>
+        <span class="status-badge ${badgeClass}">${statusTxt}</span>
+      </div>`;
+
+    if(f.status === 'success') {
+      const finalFolderName = f.serverFolderName || expectedFolder;
+      htmlContent += `
+        <div class="folder-info-box">
+          <i class="ti ti-folder-check" style="color:#2e7d32;"></i> จัดเก็บในโฟลเดอร์:
+          <span style="font-weight:600; color:#1a1a18;">${finalFolderName}</span>
+          ${f.serverFolderUrl ? `<a href="${f.serverFolderUrl}" target="_blank" class="folder-link"><i class="ti ti-external-link"></i> เปิดโฟลเดอร์</a>` : ''}
+        </div>`;
+
+      if(f.gdocUrl) {
+        htmlContent += `
+          <div class="link-box">
+            <a href="${f.gdocUrl}" target="_blank" class="gdoc-link">
+              <i class="ti ti-external-link"></i> เปิดเอกสาร Google Docs
+            </a>
+            <button class="btn-copy" onclick="copyToClipboard('${f.gdocUrl}', this)" title="คัดลอกลิงก์">
+              <i class="ti ti-copy"></i> คัดลอกลิงก์
+            </button>
+          </div>`;
+      }
+
+      if(f.sheetStatus === 'updating') {
+        htmlContent += `<div class="sheet-status updating"><i class="ti ti-loader ti-spin"></i> กำลังอัปเดต Google Sheet คอลัม S...</div>`;
+      } else if(f.sheetStatus === 'ok') {
+        htmlContent += `<div class="sheet-status ok"><i class="ti ti-table-check"></i> อัปเดต DashBoard แผนดับไฟ สำเร็จแล้ว</div>`;
+      } else if(f.sheetStatus === 'dup') {
+        htmlContent += `<div class="sheet-status dup"><i class="ti ti-alert-circle"></i> ${f.sheetStatusMsg}</div>`;
+      } else if(f.sheetStatus && f.sheetStatus !== 'ok' && f.sheetStatus !== 'updating' && f.sheetStatus !== 'dup') {
+        htmlContent += `<div class="sheet-status err"><i class="ti ti-alert-triangle"></i> ${f.sheetStatus}</div>`;
+      }
+    }
+
+    item.innerHTML = htmlContent;
+    fileList.appendChild(item);
+  });
+
+  btnUpload.disabled = !hasWait;
+}
+
+function copyToClipboard(text, btnElement) {
+  navigator.clipboard.writeText(text).then(() => {
+    btnElement.innerHTML = '<i class="ti ti-check" style="color:#2e7d32;"></i> คัดลอกแล้ว';
+    setTimeout(() => { btnElement.innerHTML = '<i class="ti ti-copy"></i> คัดลอกลิงก์'; }, 2000);
+  }).catch(err => console.error('คัดลอกผิดพลาด:', err));
+}
+
+async function updateSheetColumnS(gdocUrl, swgNumber, monthIndex) {
+  const swgFull = `ศน.1-${swgNumber}/${SETTINGS.gregorianYear}`;
+  dbg(`กำลังค้นหา "${swgFull}" เริ่มจากเดือน ${SHEET_TAB_NAMES[monthIndex]} ถอยหลัง...`);
+
+  const payload = {
+    action: 'updateSheet',
+    sheetId: SHEET_ID,
+    swgValue: swgFull,
+    gdocUrl: gdocUrl,
+    fileMonth: monthIndex
+  };
+
+  const response = await fetch(WEB_APP_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json();
+  return data;
+}
+
+btnUpload.addEventListener('click', async () => {
+  const parentId = SETTINGS.folderId;
+  const swgNumber = swgInput.value.trim();
+
+  btnUpload.disabled = true;
+  dbg('--- เริ่มตรวจสอบข้อมูล ---');
+
+  // ============================================================
+  // ✅ เพิ่มใหม่: ขั้นตอนการตรวจสอบเลข SWG ซ้ำก่อนเริ่มอัปโหลด
+  // ============================================================
+  if (swgNumber && filesArray.length > 0) {
+    // หาเดือนของไฟล์แรกในคิวเพื่อใช้เป็นจุดเริ่มต้นค้นหา
+    const sampleMonthIdx = filesArray[0].month; 
+    const swgFull = `ศน.1-${swgNumber}/${SETTINGS.gregorianYear}`;
+    
+    dbg(`กำลังส่งคำขอตรวจสอบความซ้ำซ้อนของเลข SWG: ${swgFull}...`);
+    try {
+      const checkPayload = {
+        action: 'checkDuplicateSwg',
+        sheetId: SHEET_ID,
+        swgValue: swgFull,
+        fileMonth: sampleMonthIdx
+      };
+      
+      const checkResponse = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify(checkPayload)
+      });
+      const checkData = await checkResponse.json();
+      
+      if (checkData.status === 'success' && checkData.count > 1) {
+        let details = checkData.matches.map(m => `แผ่นงาน "${m.sheet}" แถวที่ ${m.row}`).join('\n');
+        let userConfirm = confirm(`[คำเตือน!!] ตรวจพบเลขที่ SWG ซ้ำกัน ${checkData.count} แถว ในระบบ:\n\n${details}\n\nคุณต้องการอัพโหลดทั้งหมดใช่หรือไม่?`);
+        
+        if (!userConfirm) {
+          dbg('❌ ผู้ใช้ยกเลิกการทำงานเนื่องจากพบเลข SWG ซ้ำกันในระบบ');
+          btnUpload.disabled = false;
+          return; // สั่งหยุดทำงานทันที
+        }
+        dbg('⚠ ผู้ใช้กดยืนยันให้ดำเนินงานต่อ แม้ว่าจะพบเลข SWG ซ้ำกัน');
+      } else {
+        dbg('✓ ตรวจสอบเสร็จสิ้น: ไม่พบข้อมูลซ้ำซ้อนระดับอันตราย');
+      }
+    } catch (checkErr) {
+      dbg(`[ข้ามการเตือนซ้ำ] เกิดข้อผิดพลาดขณะติดต่อเพื่อตรวจสอบตัวซ้ำ: ${checkErr.message}`);
+      // หากเกิดปัญหาการเชื่อมต่อให้ดำเนินงานต่อเผื่อกรณีฉุกเฉิน
+    }
+  }
+
+  // ============================================================
+  // เริ่มกระบวนการอัปโหลดไฟล์ (โค้ดลูปเดิมของคุณ...)
+  // ============================================================
+  dbg('--- เริ่มส่งไฟล์ข้ามเซิร์ฟเวอร์ ---');
+  if(swgNumber) dbg(`เลขที่ SWG ที่จะอัปเดต: ศน.1-${swgNumber}/${SETTINGS.gregorianYear}`);
+  else dbg('ไม่ได้กรอกเลขที่ SWG → ข้ามการอัปเดต Google Sheet');
+
+  for(let i=0; i<filesArray.length; i++) {
+    const f = filesArray[i];
+    if(f.status !== 'wait') continue;
+
+    f.status = 'uploading';
+    render();
+    dbg(`กำลังประมวลผล: "${f.file.name}"`);
+
+    try {
+      const reader = new FileReader();
+      const base64Data = await new Promise((resolve, reject) => {
+        reader.readAsDataURL(f.file);
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = e => reject(e);
+      });
+
+      const payload = {
+        name: f.file.name,
+        mimeType: f.file.type || 'application/octet-stream',
+        base64: base64Data,
+        parentId: parentId,
+        monthName: MONTHS[f.month],
+        yearTh: f.yearTh,
+        isConvertible: f.isConvertible
+      };
+
+      const response = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const resData = await response.json();
+
+      if(resData.status === 'success') {
+        f.status = 'success';
+        f.gdocUrl = resData.url;
+        if(resData.folderName) f.serverFolderName = resData.folderName;
+        if(resData.folderUrl) f.serverFolderUrl = resData.folderUrl;
+        dbg(`สำเร็จ! สิ้นสุดการประมวลผล: ${f.file.name}`);
+        render();
+
+        if(swgNumber && f.gdocUrl) {
+          f.sheetStatus = 'updating';
+          render();
+          try {
+            const sheetRes = await updateSheetColumnS(f.gdocUrl, swgNumber, f.month);
+            if(sheetRes.status === 'success') {
+              f.sheetStatus = 'ok';
+              let debugInfo = sheetRes.actionE ? ` [สถานะ E: ${sheetRes.actionE}, ตรวจเจอลิงก์: ${sheetRes.debugLink}]` : '';
+              dbg(`อัปเดต Sheet คอลัม S สำเร็จ! แผ่น "${sheetRes.sheet}" แถวที่ ${sheetRes.row} (ค้น ${sheetRes.searchedSheets} แผ่น)${debugInfo}`);
+            } else if(sheetRes.status === 'duplicate') {
+              f.sheetStatus = 'dup';
+              f.sheetStatusMsg = sheetRes.message;
+              dbg(`แจ้งเตือน: ${sheetRes.message}`);
+            } else {
+              f.sheetStatus = `อัปเดต Sheet ไม่สำเร็จ: ${sheetRes.message || 'ไม่ทราบสาเหตุ'}`;
+              dbg(`Sheet error: ${sheetRes.message}`);
+            }
+          } catch(sheetErr) {
+            f.sheetStatus = `เชื่อมต่อ Sheet ผิดพลาด: ${sheetErr.message}`;
+            dbg(`Sheet exception: ${sheetErr.message}`);
+          }
+          render();
+        }
+
+      } else {
+        f.status = 'error';
+        dbg(`ผิดพลาดจากฝั่งเซิร์ฟเวอร์: ${resData.message}`);
+        render();
+      }
+    } catch (err) {
+      f.status = 'error';
+      dbg(`เกิดข้อผิดพลาดในการยิง API: ${err.message}`);
+      render();
+    }
+  }
+  dbg('--- จบการประมวลผลทั้งหมด ---');
+});
+
+// ===== INITIALIZE ===== 
+updateUIFromSettings(SETTINGS);
+dbg('✓ ระบบพร้อมทำงาน (ดึงค่าจาก localStorage)');
 </script>
 </body>
 </html>
